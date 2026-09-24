@@ -1,0 +1,59 @@
+/* משותף לשלושת המסכים: צבעים, מטריצת הסיכון, כרטיסי הבקרות ואיור התאונה */
+:root{
+  --bg:#14171c; --panel:#1d222a; --panel2:#252c36; --line:#343d49;
+  --txt:#eef1f5; --dim:#9aa5b2; --accent:#f2a33a; --accent-ink:#2a1700;
+  --green:#3ccf7e; --yellow:#f2c14e; --red:#ef5b55;
+}
+
+/* --- מטריצה --- */
+.mx{display:grid;grid-template-columns:auto repeat(5,1fr);gap:4px;direction:rtl}
+.mx-corner{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;font-size:11px;color:var(--dim);padding:2px 4px;line-height:1.2}
+.mx-ax{display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:var(--dim);padding:2px}
+.mx-ax span{font-size:10.5px;font-weight:600;opacity:.8}
+.mx-p{flex-direction:row;gap:5px;justify-content:flex-end}
+.mx-c{position:relative;aspect-ratio:1;border-radius:8px;border:1px solid rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;
+  font-family:inherit;font-weight:800;font-size:15px;color:#101418;cursor:default;padding:0}
+button.mx-c{cursor:pointer}
+.mx-c.green{background:#2e7d55} .mx-c.yellow{background:#a8801f} .mx-c.red{background:#a23c38}
+.mx-c .mx-v{opacity:.55;color:#fff;font-size:14px}
+.mx-c.sel{outline:3px solid var(--txt);outline-offset:1px}
+.mx-c.sel .mx-v{opacity:1}
+.mx-m{position:absolute;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--txt);color:#101418;
+  font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.mx-m.gross{background:#fff;color:#a23c38}
+.mx-m.resid{background:#101418;color:#fff}
+.mx-m.team{font-size:11px}
+.mx-c .mx-m + .mx-m{transform:translate(0,18px)}
+.mx.small .mx-c{border-radius:5px;font-size:11px}
+.mx.small .mx-ax{font-size:11px} .mx.small .mx-ax span{display:none}
+.mx.small .mx-corner{display:none}
+
+/* --- בקרות --- */
+.ctl{display:block;width:100%;text-align:start;background:var(--panel);border:1px solid var(--line);border-inline-start:4px solid var(--line);
+  border-radius:11px;padding:10px 12px;font-family:inherit;color:var(--txt);cursor:pointer}
+.ctl.tier1{border-inline-start-color:#3ccf7e} .ctl.tier2{border-inline-start-color:#7fd4a8}
+.ctl.tier3{border-inline-start-color:#4ea8de} .ctl.tier4{border-inline-start-color:#f2c14e}
+.ctl.tier5{border-inline-start-color:#ef5b55}
+.ctl.sel{background:var(--panel2);box-shadow:0 0 0 2px var(--accent)}
+.ctl.locked{opacity:.45;cursor:default}
+.ctl-t{display:block;font-size:12px;font-weight:800;color:var(--dim);letter-spacing:.02em}
+.ctl-x{display:block;font-size:15.5px;line-height:1.45;margin-top:2px}
+.ctl-n{display:block;font-size:13.5px;line-height:1.5;color:#c3ccd6;margin-top:6px}
+.ctl-p{display:inline-block;font-size:12.5px;font-weight:800;color:var(--accent);margin-top:5px}
+
+/* --- כרטיס התאונה --- */
+.cs-hd .cs-n{font-size:12.5px;font-weight:800;color:var(--accent);letter-spacing:.04em}
+.cs-hd .cs-t{font-size:23px;font-weight:800;margin-top:2px}
+.cs-hd .cs-b{font-size:15.5px;line-height:1.6;color:#c9d2dc;margin-top:6px}
+.fig{margin:0}
+.fig-in{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#1f262f}
+.fig-in img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.fig-ph{display:none}
+.fig-in.noimg img{display:none}
+.fig-in.noimg .fig-ph{display:flex;position:absolute;inset:0;align-items:center;justify-content:center;text-align:center;padding:18px;
+  font-size:clamp(17px,2.6vw,30px);font-weight:800;color:#5d6875;
+  background:repeating-linear-gradient(45deg,#1f262f 0 18px,#232b35 18px 36px)}
+
+.dim{color:var(--dim);font-weight:400;font-size:.88em}
+b.green{color:var(--green)} b.yellow{color:var(--yellow)} b.red{color:var(--red)}
+.hidden{display:none!important}

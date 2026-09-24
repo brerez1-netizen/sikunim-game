@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#14171c">
+<title>מטריצת הסיכון - תרגול אישי</title>
+<link rel="stylesheet" href="css/common.css">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--txt);min-height:100vh;font-family:"Segoe UI",Arial,sans-serif}
+  .wrap{display:flex;flex-direction:column;padding:14px;gap:12px;max-width:720px;width:100%;margin:0 auto}
+  button{font-family:inherit;cursor:pointer;border:none}
+  .go{font-size:18px;font-weight:700;padding:15px;border-radius:12px;background:var(--accent);color:var(--accent-ink);width:100%}
+  .go:disabled{opacity:.35}
+  .top{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .top .b{font-weight:800;color:var(--accent);font-size:17px}
+  .top .st{font-size:14px;color:var(--dim)} .top .st b{color:var(--txt)}
+  .top .sp{flex:1}
+  .top .pts{font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+  .steps{display:flex;gap:4px}
+  .stp{flex:1;height:7px;border-radius:4px;background:var(--line)}
+  .stp.done{background:var(--accent)} .stp.cur{background:#7d6a3b}
+  .ask{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 15px}
+  .ask h2{font-size:18px;margin-bottom:4px}
+  .ask p{font-size:14.5px;color:var(--dim);line-height:1.55}
+  .ctls{display:flex;flex-direction:column;gap:8px}
+  .pickinfo{font-size:14px;color:var(--dim);text-align:center}
+  .opt{display:block;width:100%;text-align:start;font-size:15.5px;line-height:1.45;padding:12px;border-radius:11px;background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  .opt.sel{background:var(--accent);color:var(--accent-ink);font-weight:700}
+  .res{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15.5px;line-height:1.65}
+  .res h3{font-size:16px;margin-bottom:4px}
+  .res .gain{float:left;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+  .res .src{display:block;font-size:12.5px;color:var(--dim);margin-top:6px}
+  .trap{background:rgba(242,163,58,.12);border-inline-start:4px solid var(--accent);border-radius:10px;padding:11px 13px;font-size:14.5px;line-height:1.6}
+  .intro{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;font-size:16px;line-height:1.75}
+  .intro h1{font-size:28px;color:var(--accent);margin-bottom:8px}
+  table.fin{width:100%;border-collapse:collapse;font-size:16px}
+  .fin td{padding:9px 6px;border-bottom:1px solid var(--line)}
+  .fin td.n{text-align:end;font-weight:800;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <span class="b">מטריצת הסיכון</span>
+  <span class="st" id="stCase"></span>
+  <span class="sp"></span>
+  <span class="pts" id="pts"></span>
+</div>
+<div class="wrap" id="stage"></div>
+
+<script src="js/gameData.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/ui.js"></script>
+<script>
+/* תרגול אישי, בלי Firebase. ההתקדמות נשמרת ב-localStorage. */
+const $ = (id) => document.getElementById(id);
+const G = window.gameData, R = window.RISK, U = window.RISK_UI, CASES = G.cases, esc = U.esc;
+const KEY = G.meta.slug + ".solo";
+
+function fresh() { return { started: false, at: 0, ans: {}, draft: null }; }
+let S;
+try { S = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) { S = fresh(); }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+
+function stepsHTML(cs, step) {
+  const order = ["gross", "controls", "residual"].concat(cs.blame ? ["blame"] : []);
+  const at = order.indexOf(step);
+  return `<div class="steps" aria-hidden="true">${order.map((_, i) =>
+    `<div class="stp ${i < at ? "done" : i === at ? "cur" : ""}"></div>`).join("")}</div>`;
+}
+
+function render() {
+  const t = R.total(S.ans);
+  $("pts").textContent = S.started ? t.pts + " נק'" : "";
+  $("stCase").innerHTML = !S.started ? "תרגול אישי" : S.at >= CASES.length ? "<b>התיק נסגר</b>" : `תאונה <b>${S.at + 1}</b> מתוך ${CASES.length}`;
+
+  if (!S.started) {
+    $("stage").innerHTML = `<div class="intro"><h1>מטריצת הסיכון</h1>
+      חמש תאונות בנייה, ובכל אחת אתם עושים את מה שסקר סיכונים עושה:
+      מדרגים את הסיכון הגולמי במטריצת 5×5, בוחרים שלוש בקרות מתוך שש, ומדרגים את הסיכון השיורי שנשאר.<br><br>
+      הסיכון השיורי אינו תשובה כתובה מראש. הוא מחושב מהבקרות שבחרתם, ולכן בחירה בדרגים התחתונים של ההיררכיה תשאיר אתכם באדום.<br><br>
+      1 עד 6 ירוק וקביל, 8 עד 12 צהוב ומותנה, 15 עד 25 אדום ואסור להתחיל בעבודה.</div>
+      <button class="go" id="btnGo">מתחילים בתאונה הראשונה</button>`;
+    $("btnGo").onclick = () => { S.started = true; save(); render(); };
+    return;
+  }
+  if (S.at >= CASES.length) return drawFinish(t);
+  const cs = CASES[S.at];
+  if (S.ans[cs.id]) return drawResult(cs);
+  if (!S.draft || S.draft.id !== cs.id) S.draft = { id: cs.id, step: "gross", g: null, picks: [], r: null, blame: null };
+  drawStep(cs);
+}
+
+function drawStep(cs) {
+  const d = S.draft, step = d.step;
+  let body = "";
+  if (step === "gross") {
+    body = `<div class="ask"><h2>שלב 1: הסיכון הגולמי</h2>
+        <p>איפה התאונה יושבת במטריצה לפני אמצעי בקרה? הקישו על התא.</p></div>
+      ${U.matrixHTML({ pick: true, sel: d.g })}
+      <button class="go" id="btnNext" ${d.g ? "" : "disabled"}>${d.g ? "לשלב הבקרות" : "בחרו תא במטריצה"}</button>`;
+  } else if (step === "controls") {
+    const left = G.meta.pickControls - d.picks.length;
+    body = `<div class="ask"><h2>שלב 2: בחירת בקרות</h2>
+        <p>בוחרים ${G.meta.pickControls} מתוך ${cs.controls.length}. המספר בכרטיס הוא הדרג בהיררכיה, ו-1 הוא החזק ביותר.</p></div>
+      <div class="ctls">${cs.controls.map((c) => U.controlHTML(c, { sel: d.picks.includes(c.id) })).join("")}</div>
+      <div class="pickinfo">${left > 0 ? `נשאר לבחור ${left}` : "נבחרו שלוש"}</div>
+      <button class="go" id="btnNext" ${left === 0 ? "" : "disabled"}>לדירוג השיורי</button>`;
+  } else if (step === "residual") {
+    body = `<div class="ask"><h2>שלב 3: הסיכון השיורי</h2><p>אחרי הבקרות שבחרתם, איפה הסיכון יושב עכשיו?</p></div>
+      ${U.matrixHTML({ pick: true, sel: d.r, marks: [{ prob: d.g.prob, sev: d.g.sev, cls: "gross", label: "גולמי" }] })}
+      <div class="ctls">${R.controlsOf(cs, d.picks).map((c) => U.controlHTML(c, { locked: true })).join("")}</div>
+      <button class="go" id="btnNext" ${d.r ? "" : "disabled"}>${cs.blame ? "לשאלת האחריות" : "הגשת התיק"}</button>`;
+  } else {
+    body = `<div class="ask"><h2>שלב 4: מי אחראי</h2><p>${esc(cs.blame.question)}</p></div>
+      ${cs.blame.options.map((o, i) => `<button class="opt ${d.blame === i ? "sel" : ""}" data-b="${i}">${esc(o)}</button>`).join("")}
+      <button class="go" id="btnNext" ${d.blame == null ? "disabled" : ""}>הגשת התיק</button>`;
+  }
+  $("stage").innerHTML = `${stepsHTML(cs, step)}${U.caseHeadHTML(cs, S.at + 1)}${U.figHTML(cs)}${body}`;
+
+  const keep = (fn) => { const y = window.scrollY; fn(); window.scrollTo(0, y); };
+  document.querySelectorAll("button.mx-c").forEach((b) => {
+    b.onclick = () => {
+      const cell = { prob: +b.dataset.p, sev: +b.dataset.s };
+      if (step === "gross") d.g = cell; else d.r = cell;
+      save(); keep(() => drawStep(cs));
+    };
+  });
+  document.querySelectorAll(".ctl").forEach((b) => {
+    b.onclick = () => {
+      const id = b.dataset.c;
+      if (d.picks.includes(id)) d.picks = d.picks.filter((x) => x !== id);
+      else if (d.picks.length < G.meta.pickControls) d.picks.push(id);
+      save(); keep(() => drawStep(cs));
+    };
+  });
+  document.querySelectorAll(".opt").forEach((b) => {
+    b.onclick = () => { d.blame = +b.dataset.b; save(); keep(() => drawStep(cs)); };
+  });
+  $("btnNext").onclick = () => {
+    if (step === "gross") d.step = "controls";
+    else if (step === "controls") d.step = "residual";
+    else if (step === "residual" && cs.blame) d.step = "blame";
+    else {
+      S.ans[cs.id] = { g: d.g, picks: d.picks, r: d.r, blame: d.blame };
+      S.draft = null;
+    }
+    save(); render(); window.scrollTo(0, 0);
+  };
+}
+
+function drawResult(cs) {
+  const ans = S.ans[cs.id], s = R.scoreCase(cs, ans);
+  const last = S.at + 1 >= CASES.length;
+  const marks = [
+    { prob: cs.gross.prob, sev: cs.gross.sev, cls: "gross", label: "גולמי" },
+    { prob: s.truth.prob, sev: s.truth.sev, cls: "resid", label: "שיורי" },
+  ];
+  $("stage").innerHTML = `${U.caseHeadHTML(cs, S.at + 1)}
+    <div class="res"><span class="gain">+${s.pts}</span><h3>התוצאה</h3>
+      הגולמי הנכון: ${U.cellLine(cs.gross)}. ${s.gross.kind === "exact" ? "דירגתם מדויק." : s.gross.kind === "near" ? "הייתם תא אחד משם." : `דירגתם ${R.score(ans.g)}.`}<br>
+      השיורי שיצרתם בבחירות שלכם: ${U.cellLine(s.truth)}. ${s.resid.kind === "exact" ? "חישבתם אותו נכון." : s.resid.kind === "near" ? "הייתם תא אחד משם." : `סימנתם ${R.score(ans.r)}.`}
+      ${s.ppeOnly ? "<br><b>בחרתם רק דרגים תחתונים</b>, ולכן הסיכון כמעט לא זז." : ""}
+      <span class="src">📖 ${esc(cs.src)}</span></div>
+    ${U.matrixHTML({ marks })}
+    <div class="res">${esc(cs.grossWhy)}</div>
+    <div class="ctls">${s.picked.map((c) => U.controlHTML(c, { locked: true, note: true, pts: true })).join("")}</div>
+    ${cs.blame ? `<div class="res"><h3>מי אחראי</h3>${ans.blame === 0 ? "<b>נכון.</b> " : `<b>לא.</b> התשובה: ${esc(cs.blame.options[0])}. `}${cs.blame.why.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")}</div>` : ""}
+    <div class="trap">${esc(cs.trap)}</div>
+    <button class="go" id="btnNext">${last ? "לסגירת התיק" : "לתאונה הבאה"}</button>`;
+  $("btnNext").onclick = () => { S.at++; save(); render(); window.scrollTo(0, 0); };
+}
+
+function drawFinish(t) {
+  $("stage").innerHTML = `<div class="res">סגרתם את חמש התאונות עם <b style="color:var(--accent);font-size:20px">${t.pts}</b> מתוך ${R.maxTotal()} נקודות.<br>
+      ${t.exact} דירוגים גולמיים מדויקים, ו-${t.green} תאונות שהורדתם לטווח הירוק.</div>
+    <table class="fin">${CASES.map((c, i) => {
+      const s = t.per[c.id];
+      return `<tr><td>${i + 1}. ${esc(c.title)}</td><td class="n">${s ? s.pts : 0} מתוך ${R.maxCase(c)}</td></tr>`;
+    }).join("")}</table>
+    <button class="go" id="btnAgain">סבב נוסף</button>`;
+  $("btnAgain").onclick = () => { S = fresh(); S.started = true; save(); render(); window.scrollTo(0, 0); };
+}
+
+render();
+</script>
+</body>
+</html>

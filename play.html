@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#14171c">
+<title>מטריצת הסיכון</title>
+<link rel="stylesheet" href="css/common.css">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--txt);min-height:100vh;font-family:"Segoe UI",Arial,sans-serif;display:flex;flex-direction:column}
+  .wrap{flex:1;display:flex;flex-direction:column;padding:14px;gap:12px;max-width:640px;width:100%;margin:0 auto}
+  h1{font-size:28px;color:var(--accent);text-align:center}
+  .sub{font-size:15px;color:var(--dim);text-align:center;line-height:1.5}
+  label{font-size:15px;color:var(--dim);display:block;margin-bottom:6px}
+  input.txt{width:100%;padding:14px;font-size:19px;font-family:inherit;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--txt)}
+  .colors{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}
+  .sw{aspect-ratio:1;border-radius:50%;border:3px solid transparent;cursor:pointer}
+  .sw.sel{border-color:#fff;transform:scale(1.08)}
+  .sw.taken{opacity:.18;cursor:not-allowed}
+  button{font-family:inherit;cursor:pointer;border:none}
+  .go{font-size:18px;font-weight:700;padding:15px;border-radius:12px;background:var(--accent);color:var(--accent-ink);width:100%}
+  .go:disabled{opacity:.35}
+
+  .status{display:flex;align-items:center;gap:9px;padding:9px 13px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .me{padding:4px 12px;border-radius:14px;font-size:15px;font-weight:700;color:#0b0f10;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .st{font-size:14px;color:var(--dim)} .st b{color:var(--txt)} .sp{flex:1}
+  .pts{font-size:16px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+  .steps{display:flex;gap:4px}
+  .stp{flex:1;height:7px;border-radius:4px;background:var(--line)}
+  .stp.done{background:var(--accent)} .stp.cur{background:#7d6a3b}
+
+  .ask{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 15px}
+  .ask h2{font-size:18px;margin-bottom:4px}
+  .ask p{font-size:14.5px;color:var(--dim);line-height:1.55}
+  .ctls{display:flex;flex-direction:column;gap:8px}
+  .pickinfo{font-size:14px;color:var(--dim);text-align:center}
+  .opt{display:block;width:100%;text-align:start;font-size:15.5px;line-height:1.45;padding:12px;border-radius:11px;background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  .opt.sel{background:var(--accent);color:var(--accent-ink);font-weight:700}
+  .res{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15.5px;line-height:1.65}
+  .res h3{font-size:16px;margin-bottom:4px}
+  .res .gain{float:left;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+  .res .src{display:block;font-size:12.5px;color:var(--dim);margin-top:6px}
+  .trap{background:rgba(242,163,58,.12);border-inline-start:4px solid var(--accent);border-radius:10px;padding:11px 13px;font-size:14.5px;line-height:1.6}
+  .big{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:18px}
+  .big .ic{font-size:58px} .big .t{font-size:25px;font-weight:800} .big .d{font-size:16px;color:var(--dim);line-height:1.6}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="join">
+  <h1>מטריצת הסיכון</h1>
+  <div class="sub">תחיקת הבנייה · שיעור 24 · הערכת סיכונים<br>מצטרפים כקבוצה, טלפון אחד לכל קבוצה</div>
+  <div>
+    <label for="nm">שם הקבוצה</label>
+    <input class="txt" type="text" id="nm" maxlength="16" autocomplete="off" placeholder="איך שיופיע על המסך">
+  </div>
+  <div>
+    <label>צבע הקבוצה</label>
+    <div class="colors" id="colors"></div>
+  </div>
+  <button class="go" id="btnJoin">מצטרפים</button>
+  <div class="sub" id="joinmsg"></div>
+</div>
+
+<div id="game" class="hidden" style="flex:1;display:flex;flex-direction:column">
+  <div class="status">
+    <span class="me" id="me"></span>
+    <span class="st" id="stCase"></span>
+    <span class="sp"></span>
+    <span class="pts" id="pts"></span>
+  </div>
+  <div class="wrap" id="stage"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="js/config.js"></script>
+<script src="js/gameData.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/ui.js"></script>
+<script>
+/* =====================================================================
+   הטלפון של הקבוצה. כל קבוצה מתקדמת בקצב שלה, ולכן החישוב נעשה כאן:
+   בסוף כל תאונה הקבוצה רואה מיד את הסיכון השיורי שהיא ייצרה בבחירות שלה.
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+const G = window.gameData, R = window.RISK, U = window.RISK_UI, CASES = G.cases, esc = U.esc;
+const LS = G.meta.slug + ".tid";
+
+if (!window.FIREBASE_CONFIG) {
+  document.body.innerHTML = `<div class="wrap"><div class="big"><div class="ic">🔌</div>
+    <div class="t">המשחק עוד לא מחובר</div>
+    <div class="d">חסר חיבור ל-Firebase. בינתיים אפשר לתרגל בדף <a href="solo.html" style="color:var(--accent)">התרגול האישי</a>.</div></div></div>`;
+  throw new Error("missing FIREBASE_CONFIG");
+}
+firebase.initializeApp(window.FIREBASE_CONFIG);
+const db = firebase.database();
+const TS = firebase.database.ServerValue.TIMESTAMP;
+
+let tid = null, team = null, teams = {}, game = { state: "lobby" };
+let color = G.meta.colors[0];
+let draft = null, busy = false;
+
+/* ---------------------- הצטרפות ---------------------- */
+const takenColors = () => Object.entries(teams).filter(([k]) => k !== tid).map(([, t]) => t.color);
+function paintColors() {
+  const tk = takenColors();
+  $("colors").innerHTML = G.meta.colors.map((c) =>
+    `<div class="sw ${c === color ? "sel" : ""} ${tk.includes(c) ? "taken" : ""}" data-c="${c}" style="background:${c}" role="button" aria-label="בחירת צבע"></div>`).join("");
+}
+$("colors").onclick = (e) => {
+  const sw = e.target.closest(".sw");
+  if (!sw || sw.classList.contains("taken")) return;
+  color = sw.dataset.c; paintColors();
+};
+paintColors();
+
+db.ref("teams").on("value", (s) => {
+  teams = s.val() || {};
+  if (!tid) {
+    const tk = takenColors();
+    if (tk.includes(color)) color = G.meta.colors.find((c) => !tk.includes(c)) || color;
+    paintColors();
+    return;
+  }
+  if (!teams[tid]) { localStorage.removeItem(LS); location.reload(); return; }
+  team = teams[tid];
+  render();
+});
+
+db.ref("game").on("value", (s) => {
+  game = s.val() || { state: "lobby" };
+  if (tid) render();
+});
+
+$("btnJoin").onclick = () => {
+  const name = $("nm").value.trim();
+  if (name.length < 2) { $("joinmsg").textContent = "צריך שם באורך שתי אותיות לפחות"; return; }
+  if (takenColors().includes(color)) { $("joinmsg").textContent = "הצבע הזה נתפס, בחרו אחר"; return; }
+  if (Object.values(teams).some((t) => t.name === name)) { $("joinmsg").textContent = "כבר יש קבוצה בשם הזה"; return; }
+  $("btnJoin").disabled = true;
+  const ref = db.ref("teams").push();
+  tid = ref.key;
+  ref.set({ name, color, joinedAt: TS, at: 0 })
+    .then(() => { localStorage.setItem(LS, tid); team = { name, color, at: 0 }; enter(); })
+    .catch(() => { tid = null; $("btnJoin").disabled = false; $("joinmsg").textContent = "ההצטרפות נכשלה, נסו שוב"; });
+};
+
+(function restore() {
+  const saved = localStorage.getItem(LS);
+  if (!saved) return;
+  db.ref("teams/" + saved).once("value").then((s) => {
+    if (!s.exists()) { localStorage.removeItem(LS); return; }
+    tid = saved; team = s.val(); color = team.color; enter();
+  });
+})();
+
+function enter() {
+  $("join").classList.add("hidden");
+  $("game").classList.remove("hidden");
+  render();
+}
+
+/* ---------------------- טיוטה ---------------------- */
+const DKEY = () => `${G.meta.slug}.draft.${tid}`;
+function freshDraft(cs) { return { id: cs.id, step: "gross", g: null, picks: [], r: null, blame: null }; }
+function loadDraft(cs) {
+  try {
+    const d = JSON.parse(localStorage.getItem(DKEY()) || "null");
+    if (d && d.id === cs.id) return d;
+  } catch (e) {}
+  return freshDraft(cs);
+}
+function saveDraft() { try { localStorage.setItem(DKEY(), JSON.stringify(draft)); } catch (e) {} }
+
+/* ---------------------- ציור ---------------------- */
+function big(ic, t, d) {
+  $("stage").innerHTML = `<div class="big"><div class="ic">${ic}</div><div class="t">${t}</div><div class="d">${d}</div></div>`;
+}
+
+function paintStatus() {
+  $("me").textContent = team.name;
+  $("me").style.background = team.color;
+  const at = Math.min(team.at || 0, CASES.length);
+  $("stCase").innerHTML = game.state === "lobby" ? "לובי"
+    : at >= CASES.length ? "<b>התיק נסגר</b>" : `תאונה <b>${at + 1}</b> מתוך ${CASES.length}`;
+  $("pts").textContent = game.state === "lobby" ? "" : R.total(team.ans).pts + " נק'";
+}
+
+function stepsHTML(cs, step) {
+  const order = ["gross", "controls", "residual"].concat(cs.blame ? ["blame"] : []);
+  const at = order.indexOf(step);
+  return `<div class="steps" aria-hidden="true">${order.map((_, i) =>
+    `<div class="stp ${i < at ? "done" : i === at ? "cur" : ""}"></div>`).join("")}</div>`;
+}
+
+function render() {
+  if (!tid || !team) return;
+  paintStatus();
+  const at = team.at || 0;
+
+  if (game.state === "lobby")
+    return big("📋", "הקבוצה בפנים", "מחכים שכל הקבוצות יצטרפו ושהתיק הראשון ייפתח.<br>בכל תאונה: דירוג גולמי, בחירת בקרות, ודירוג שיורי.");
+
+  if (game.state === "review" || game.state === "finished") {
+    const t = R.total(team.ans);
+    if (game.state === "finished" || game.review == null)
+      return big("🏁", "סוף המשחק", `צברתם <b style="color:var(--accent)">${t.pts}</b> מתוך ${R.maxTotal()} נקודות.<br>הטבלה על המסך הגדול.`);
+    return drawResult(CASES[game.review], true);
+  }
+
+  if (at >= CASES.length) {
+    const t = R.total(team.ans);
+    return big("✅", "סגרתם את כל התיקים", `${t.pts} מתוך ${R.maxTotal()} נקודות.<br>${t.green} מתוך ${CASES.length} תאונות הורדתם לטווח הירוק.<br>מחכים לשאר הקבוצות.`);
+  }
+  const cs = CASES[at];
+  if (team.ans && team.ans[cs.id]) return drawResult(cs, false);
+  if (!draft || draft.id !== cs.id) draft = loadDraft(cs);
+  drawStep(cs, at);
+}
+
+function drawStep(cs, at) {
+  const step = draft.step;
+  let body = "";
+  if (step === "gross") {
+    body = `<div class="ask"><h2>שלב 1: הסיכון הגולמי</h2>
+        <p>איפה התאונה הזו יושבת במטריצה <b>לפני</b> שמפעילים אמצעי בקרה? הקישו על התא.</p></div>
+      ${U.matrixHTML({ pick: true, sel: draft.g })}
+      <button class="go" id="btnNext" ${draft.g ? "" : "disabled"}>${draft.g ? "לשלב הבקרות" : "בחרו תא במטריצה"}</button>`;
+  } else if (step === "controls") {
+    const left = G.meta.pickControls - draft.picks.length;
+    body = `<div class="ask"><h2>שלב 2: בחירת בקרות</h2>
+        <p>בוחרים <b>${G.meta.pickControls}</b> בקרות מתוך ${cs.controls.length}. המספר בכל כרטיס הוא הדרג בהיררכיית הבקרות, ו-1 הוא החזק ביותר.</p></div>
+      <div class="ctls">${cs.controls.map((c) => U.controlHTML(c, { sel: draft.picks.includes(c.id) })).join("")}</div>
+      <div class="pickinfo">${left > 0 ? `נשאר לבחור ${left}` : "נבחרו שלוש"}</div>
+      <button class="go" id="btnNext" ${left === 0 ? "" : "disabled"}>לדירוג השיורי</button>`;
+  } else if (step === "residual") {
+    body = `<div class="ask"><h2>שלב 3: הסיכון השיורי</h2>
+        <p>אחרי הבקרות שבחרתם, איפה הסיכון יושב עכשיו? הקישו על התא.</p></div>
+      ${U.matrixHTML({ pick: true, sel: draft.r, marks: [{ prob: draft.g.prob, sev: draft.g.sev, cls: "gross", label: "גולמי" }] })}
+      <div class="ctls">${R.controlsOf(cs, draft.picks).map((c) => U.controlHTML(c, { locked: true })).join("")}</div>
+      <button class="go" id="btnNext" ${draft.r ? "" : "disabled"}>${cs.blame ? "לשאלת האחריות" : "הגשת התיק"}</button>`;
+  } else {
+    body = `<div class="ask"><h2>שלב 4: מי אחראי</h2><p>${esc(cs.blame.question)}</p></div>
+      ${cs.blame.options.map((o, i) => `<button class="opt ${draft.blame === i ? "sel" : ""}" data-b="${i}">${esc(o)}</button>`).join("")}
+      <button class="go" id="btnNext" ${draft.blame == null ? "disabled" : ""}>הגשת התיק</button>`;
+  }
+
+  $("stage").innerHTML = `${stepsHTML(cs, step)}${U.caseHeadHTML(cs, at + 1)}${U.figHTML(cs)}${body}`;
+
+  document.querySelectorAll("button.mx-c").forEach((b) => {
+    b.onclick = () => {
+      const cell = { prob: +b.dataset.p, sev: +b.dataset.s };
+      if (step === "gross") draft.g = cell; else draft.r = cell;
+      saveDraft(); keep(() => drawStep(cs, at));
+    };
+  });
+  document.querySelectorAll(".ctl").forEach((b) => {
+    b.onclick = () => {
+      const id = b.dataset.c;
+      if (draft.picks.includes(id)) draft.picks = draft.picks.filter((x) => x !== id);
+      else if (draft.picks.length < G.meta.pickControls) draft.picks.push(id);
+      saveDraft(); keep(() => drawStep(cs, at));
+    };
+  });
+  document.querySelectorAll(".opt").forEach((b) => {
+    b.onclick = () => { draft.blame = +b.dataset.b; saveDraft(); keep(() => drawStep(cs, at)); };
+  });
+  const nx = $("btnNext");
+  if (nx) nx.onclick = () => {
+    if (step === "gross") draft.step = "controls";
+    else if (step === "controls") draft.step = "residual";
+    else if (step === "residual" && cs.blame) draft.step = "blame";
+    else return submit(cs);
+    saveDraft(); render(); window.scrollTo(0, 0);
+  };
+}
+
+function keep(fn) { const y = window.scrollY; fn(); window.scrollTo(0, y); }
+
+function drawResult(cs, reviewing) {
+  const ans = (team.ans && team.ans[cs.id]) || {};
+  const s = R.scoreCase(cs, ans);
+  const at = CASES.indexOf(cs), last = at + 1 >= CASES.length;
+  const marks = [
+    { prob: cs.gross.prob, sev: cs.gross.sev, cls: "gross", label: "גולמי" },
+    { prob: s.truth.prob, sev: s.truth.sev, cls: "resid", label: "שיורי" },
+  ];
+  if (ans.g && !R.same(ans.g, cs.gross)) marks.push({ prob: ans.g.prob, sev: ans.g.sev, cls: "team", label: "שלכם", color: team.color });
+  $("stage").innerHTML = `${U.caseHeadHTML(cs, at + 1)}
+    <div class="res"><span class="gain">+${s.pts}</span><h3>התוצאה</h3>
+      הגולמי הנכון: ${U.cellLine(cs.gross)}. ${s.gross.kind === "exact" ? "דירגתם מדויק." : s.gross.kind === "near" ? "הייתם תא אחד משם." : ans.g ? `דירגתם ${R.score(ans.g)}.` : ""}<br>
+      השיורי שיצרתם בבחירות שלכם: ${U.cellLine(s.truth)}. ${s.resid.kind === "exact" ? "חישבתם אותו נכון." : s.resid.kind === "near" ? "הייתם תא אחד משם." : ans.r ? `סימנתם ${R.score(ans.r)}.` : ""}
+      ${s.ppeOnly ? "<br><b>בחרתם רק דרגים תחתונים</b>, ולכן הסיכון כמעט לא זז." : ""}
+      <span class="src">📖 ${esc(cs.src)}</span></div>
+    ${U.matrixHTML({ marks })}
+    <div class="res">${esc(cs.grossWhy)}</div>
+    <div class="ctls">${s.picked.map((c) => U.controlHTML(c, { locked: true, note: true, pts: true })).join("")}</div>
+    ${cs.blame ? `<div class="res"><h3>מי אחראי</h3>${ans.blame === 0 ? "<b>נכון.</b> " : `<b>לא.</b> התשובה: ${esc(cs.blame.options[0])}. `}${cs.blame.why.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")}</div>` : ""}
+    <div class="trap">${esc(cs.trap)}</div>
+    ${reviewing ? "" : `<button class="go" id="btnNext">${last ? "לסגירת התיק" : "לתאונה הבאה"}</button>`}`;
+  if ($("btnNext")) $("btnNext").onclick = next;
+}
+
+/* ---------------------- כתיבה ---------------------- */
+function submit(cs) {
+  if (busy || game.state !== "tour") return;
+  const ans = { g: draft.g, picks: draft.picks, r: draft.r };
+  if (cs.blame) ans.blame = draft.blame;
+  team.ans = team.ans || {};
+  team.ans[cs.id] = ans;
+  busy = true;
+  db.ref(`teams/${tid}`).update({ [`ans/${cs.id}`]: ans, [`sub/${cs.id}`]: TS }).then(() => { busy = false; }, () => { busy = false; });
+  if (navigator.vibrate) navigator.vibrate([25, 40, 25]);
+  render();
+  window.scrollTo(0, 0);
+}
+
+function next() {
+  if (busy || game.state !== "tour") return;
+  const at = (team.at || 0) + 1;
+  team.at = at;
+  draft = null;
+  try { localStorage.removeItem(DKEY()); } catch (e) {}
+  const upd = { at };
+  if (at >= CASES.length) upd.finishedAt = TS;
+  busy = true;
+  db.ref(`teams/${tid}`).update(upd).then(() => { busy = false; }, () => { busy = false; });
+  render();
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>

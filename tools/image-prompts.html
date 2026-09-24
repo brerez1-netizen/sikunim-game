@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>פרומפטים למטריצת הסיכון</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&family=Assistant:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#f3f1ec; --surface:#fffdf9; --code:#1d2328; --code-ink:#e8edf0;
+  --ink:#1c2226; --dim:#5f6b73; --line:#dcd8cf; --line-2:#c4bfb3;
+  --accent:#a86f0c; --ok:#2f6b44; --ok-bg:#dcebe0; --todo:#8a5a14; --todo-bg:#f3e7cd;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141a1f; --surface:#1b232a; --code:#0e1215; --code-ink:#dfe6ea;
+  --ink:#eaeef0; --dim:#98a6af; --line:#2c3740; --line-2:#3b4852;
+  --accent:#e0a526; --ok:#8fcfa5; --ok-bg:#1d3025; --todo:#dcb766; --todo-bg:#332a17;
+}}
+:root[data-theme="dark"]{
+  --bg:#141a1f; --surface:#1b232a; --code:#0e1215; --code-ink:#dfe6ea;
+  --ink:#eaeef0; --dim:#98a6af; --line:#2c3740; --line-2:#3b4852;
+  --accent:#e0a526; --ok:#8fcfa5; --ok-bg:#1d3025; --todo:#dcb766; --todo-bg:#332a17;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Assistant,"Segoe UI",system-ui,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:32px 18px 80px}
+h1,h2,h3{font-family:Heebo,"Segoe UI",sans-serif;margin:0;text-wrap:balance}
+h1{font-size:2rem;font-weight:900;letter-spacing:-.02em}
+h2{font-size:1.15rem;font-weight:700}
+h3{font-size:1.02rem;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:Heebo,sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.14em;color:var(--accent)}
+.sub{color:var(--dim);margin-top:10px;max-width:66ch}
+header.top{border-bottom:2px solid var(--line-2);padding-bottom:22px;margin-bottom:22px}
+.tally{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+
+.rule{background:var(--surface);border:1px solid var(--line);border-inline-start:4px solid var(--accent);border-radius:9px;padding:16px 18px;margin-bottom:20px}
+.rule p{color:var(--dim);font-size:.95rem;max-width:74ch;margin-top:6px}
+.rule b{color:var(--ink)}
+.steps{margin:8px 0 0;padding-inline-start:20px;color:var(--dim);font-size:.93rem}
+.steps li{margin-bottom:4px}
+.steps b{color:var(--ink)}
+
+.stylebox{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:16px 18px;margin-bottom:26px}
+.stylehead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.stylehead p{color:var(--dim);font-size:.89rem;flex:1;min-width:200px}
+details summary{cursor:pointer;color:var(--dim);font-size:.86rem;font-family:Heebo,sans-serif;font-weight:700}
+details[open] summary{margin-bottom:9px}
+pre{background:var(--code);color:var(--code-ink);border-radius:7px;padding:13px 15px;margin:0;
+  font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.8rem;line-height:1.55;
+  white-space:pre-wrap;overflow-x:auto;direction:ltr;text-align:left}
+
+.shot{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:15px 17px;margin-bottom:12px}
+.shot.have{opacity:.72}
+.shot header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.shot h3{flex:1;min-width:140px}
+.n{font-family:Heebo,sans-serif;font-weight:900;font-size:.8rem;background:var(--ink);color:var(--bg);border-radius:5px;padding:2px 9px;font-variant-numeric:tabular-nums}
+.file{font-size:.82rem;color:var(--dim);direction:ltr}
+.status{font-family:Heebo,sans-serif;font-size:.77rem;font-weight:700;padding:3px 9px;border-radius:5px;white-space:nowrap}
+.status.ok{background:var(--ok-bg);color:var(--ok)}
+.status.todo{background:var(--todo-bg);color:var(--todo)}
+.where{color:var(--dim);font-size:.9rem;margin-bottom:9px;max-width:76ch}
+.where.hot{color:var(--todo);font-weight:600}
+
+button{font:inherit;font-family:Heebo,sans-serif;font-weight:700;font-size:.85rem;cursor:pointer;
+  background:var(--accent);color:var(--bg);border:none;border-radius:7px;padding:7px 15px;white-space:nowrap}
+button:hover{opacity:.88}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.done{background:var(--ok)}
+.check{margin-top:30px;padding-top:18px;border-top:2px solid var(--line-2)}
+.check ol{margin:10px 0 0;padding-inline-start:20px;color:var(--dim);font-size:.93rem}
+.check li{margin-bottom:5px}
+.check b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <p class="eyebrow">תחיקת הבנייה · שיעור 24 · הערכת סיכונים</p>
+  <h1>פרומפטים למטריצת הסיכון</h1>
+  <p class="sub">5 תמונות, אחת לכל תאונה. התמונה מראה את המפגע לפני האירוע, לא את התוצאה. כל כפתור מעתיק את בלוק הסגנון ואת הפרומפט יחד.</p>
+  <div class="tally">
+    <span class="status ok">0 בתיקייה</span>
+    <span class="status todo">5 לייצור</span>
+  </div>
+</header>
+
+<div class="rule">
+  <h2>הכלל שקובע את כל הפרומפטים</h2>
+  <p><b>אותה תמונה משמשת גם תיק תקין וגם תיק שבור.</b> תמונת הכבש מופיעה ליד "עולה 0.45 מ'" וגם ליד "עולה 0.90 מ' במהלך אחד". לכן התמונה אסור שתכריע שום מידה: לא שיפוע שאפשר לאמוד, לא סף שאפשר למדוד בעין, לא פרוזדור שאפשר לספור. המידות יושבות ברצועה מעל התמונה.</p>
+  <ol class="steps">
+    <li>לוחצים <b>העתקת הפרומפט</b> ומדביקים כפרומפט אחד.</li>
+    <li>יחס <b>16:9</b> לרוחב.</li>
+    <li>שומרים בשם שבכרטיס (<b>c1.jpg</b> וכו') ושולחים אחת-אחת.</li>
+  </ol>
+</div>
+
+<div class="stylebox">
+  <div class="stylehead">
+    <h2>בלוק הסגנון</h2>
+    <p>כלול אוטומטית בכל כפתור העתקה. כאן רק לעיון.</p>
+  </div>
+  <details><summary>הצגת הבלוק</summary><pre dir="ltr" id="pstyle">Documentary construction-site photography, realistic and matter-of-fact, like an
+image in a safety-inspection report. Israeli construction site: grey concrete
+frame, red-orange scaffolding, yellow excavators, white-grey block walls, strong
+Mediterranean daylight with hard shadows.
+
+Neutral, slightly desaturated colours. The single element the scene is about is
+clearly visible and well lit, in the middle third of the frame.
+
+Eye-level camera, natural perspective, no fisheye, no drone view, no dramatic
+angle. No motion blur.
+
+Nothing is broken, collapsed or on fire, and nobody is injured. This is the
+moment before, not after.
+
+16:9 landscape.
+
+No text, no words, no letters, no numbers, no readable signage, no logos, no
+brand marks, no watermarks anywhere in the image.</pre></details>
+</div>
+
+<h2 style="margin-bottom:12px">התמונות</h2>
+
+  <article class="shot">
+    <header>
+      <span class="n">1</span>
+      <h3>נפילה מפיגום קצה</h3>
+      <code class="file">c1.jpg</code>
+      <span class="status todo">לייצור</span>
+      <button class="copy" data-i="0">העתקת הפרומפט</button>
+    </header>
+    <p class="where"></p>
+    <details open><summary>הצגת הפרומפט</summary><pre dir="ltr" id="p0">A steel frame scaffold standing along the facade of a concrete building under
+construction, seen from the side and slightly below, six storeys up.
+
+The top working platform is made of plain wooden boards and is completely open:
+no guardrail, no mid-rail and no toe board along its outer edge. The lower
+platforms of the same scaffold do have guardrails, so the missing rail on the top
+level reads instantly.
+
+Two plasterers in work clothes and helmets stand on the top platform, working on
+the wall, both well away from the edge and standing safely.
+
+No safety net under the platform, no harness lines, no people near the open edge.</pre></details>
+  </article>
+  <article class="shot">
+    <header>
+      <span class="n">2</span>
+      <h3>אבק סיליקה בניסור יבש</h3>
+      <code class="file">c2.jpg</code>
+      <span class="status todo">לייצור</span>
+      <button class="copy" data-i="1">העתקת הפרומפט</button>
+    </header>
+    <p class="where"></p>
+    <details><summary>הצגת הפרומפט</summary><pre dir="ltr" id="p1">Inside a closed, unventilated concrete floor of a building under construction. One
+worker in the middle of the frame cuts a concrete block with a hand-held dry disc
+saw resting on a low workbench.
+
+A thick white cloud of dust hangs in the air around him and drifts through the
+shafts of light coming from a single window opening. Fine pale dust covers the
+floor, the blocks and the surfaces around.
+
+The worker wears a helmet but no respirator. There is no water feed on the saw and
+no extraction hose anywhere in the room.
+
+The saw is cutting normally, nothing is broken, the worker is standing upright and
+unhurt.</pre></details>
+  </article>
+  <article class="shot">
+    <header>
+      <span class="n">3</span>
+      <h3>כבל מתח שנחשף בחפירה</h3>
+      <code class="file">c3.jpg</code>
+      <span class="status todo">לייצור</span>
+      <button class="copy" data-i="2">העתקת הפרומפט</button>
+    </header>
+    <p class="where"></p>
+    <details><summary>הצגת הפרומפט</summary><pre dir="ltr" id="p2">An open narrow trench cut along the boundary of a construction site, seen from
+above ground at eye level. The trench is about one metre deep, with loose earth
+piled beside it.
+
+In the side wall of the trench, clearly visible, runs a thick black electrical
+cable, partly uncovered by the digging, with earth still clinging to it. No
+warning tape and no marker above it.
+
+A yellow excavator stands close to the trench with its bucket lowered near the
+same line. Two workers stand at the far end of the trench, upright and at a
+distance, tidying the edge.
+
+The cable is intact and undamaged. No sparks, no fire, no one touching the cable.</pre></details>
+  </article>
+  <article class="shot">
+    <header>
+      <span class="n">4</span>
+      <h3>קריסת תבנית ביציקת תקרה</h3>
+      <code class="file">c4.jpg</code>
+      <span class="status todo">לייצור</span>
+      <button class="copy" data-i="3">העתקת הפרומפט</button>
+    </header>
+    <p class="where"></p>
+    <details><summary>הצגת הפרומפט</summary><pre dir="ltr" id="p3">A ceiling formwork deck on the third floor of a building under construction, seen
+from below and to the side. The deck is carried by a forest of steel props.
+
+Several props in the centre of the frame are visibly loose and not tight against
+the beams above, and one stands slightly tilted. The deck above them sags very
+slightly, a shallow dip that is noticeable against the straight line of the beams
+beside it.
+
+Above the deck, a concrete pump hose is pouring wet concrete. Workers in helmets
+stand on the deck near the pour, and a few more stand on the floor below.
+
+Nothing has collapsed. The formwork is still standing, the concrete is flowing
+normally, nobody is falling or hurt.</pre></details>
+  </article>
+  <article class="shot">
+    <header>
+      <span class="n">5</span>
+      <h3>חנות עם תקרת עץ נמוכה</h3>
+      <code class="file">c5.jpg</code>
+      <span class="status todo">לייצור</span>
+      <button class="copy" data-i="4">העתקת הפרומפט</button>
+    </header>
+    <p class="where"></p>
+    <details><summary>הצגת הפרומפט</summary><pre dir="ltr" id="p4">The interior of a finished retail shop, about 400 square metres, photographed from
+one corner at eye level.
+
+The ceiling is a continuous surface of dark wooden slats, and it is clearly low:
+it sits just above the tops of the tall display units, and the whole space feels
+compressed under it.
+
+Open shopping floor with clothing racks and shelves, a few customers walking
+between them, calm and ordinary. Warm downlights are recessed in the wooden
+ceiling.
+
+There are no sprinklers and no smoke vents on the ceiling. No fire, no smoke, no
+alarm, nothing dramatic: an ordinary shopping afternoon.</pre></details>
+  </article>
+
+<div class="check">
+  <h2>מה אני בודק בכל תמונה</h2>
+  <ol>
+    <li><b>האם היא מכריעה מידה שמשתנה בין התיקים.</b> מדרגות ליד הכבש, פודסט, סף שנראה גבוה או נמוך, פרוזדור שאפשר לספור. כל אחד מאלה פוסל.</li>
+    <li><b>האם נכנס טקסט, מספר או חץ</b> למרות האיסור.</li>
+    <li><b>האם הנושא נקרא</b> כשהתמונה בגודל רבע מסך.</li>
+    <li><b>האם הרבע התחתון שקט</b>, כי רצועת המידות מכסה אותו.</li>
+    <li><b>אחידות הסדרה</b>: אותה שעה ביום, אותה פלטה, אותה עדשה.</li>
+  </ol>
+</div>
+</div>
+
+<script>
+const STYLE = "Documentary construction-site photography, realistic and matter-of-fact, like an\nimage in a safety-inspection report. Israeli construction site: grey concrete\nframe, red-orange scaffolding, yellow excavators, white-grey block walls, strong\nMediterranean daylight with hard shadows.\n\nNeutral, slightly desaturated colours. The single element the scene is about is\nclearly visible and well lit, in the middle third of the frame.\n\nEye-level camera, natural perspective, no fisheye, no drone view, no dramatic\nangle. No motion blur.\n\nNothing is broken, collapsed or on fire, and nobody is injured. This is the\nmoment before, not after.\n\n16:9 landscape.\n\nNo text, no words, no letters, no numbers, no readable signage, no logos, no\nbrand marks, no watermarks anywhere in the image.";
+const PROMPTS = ["A steel frame scaffold standing along the facade of a concrete building under\nconstruction, seen from the side and slightly below, six storeys up.\n\nThe top working platform is made of plain wooden boards and is completely open:\nno guardrail, no mid-rail and no toe board along its outer edge. The lower\nplatforms of the same scaffold do have guardrails, so the missing rail on the top\nlevel reads instantly.\n\nTwo plasterers in work clothes and helmets stand on the top platform, working on\nthe wall, both well away from the edge and standing safely.\n\nNo safety net under the platform, no harness lines, no people near the open edge.","Inside a closed, unventilated concrete floor of a building under construction. One\nworker in the middle of the frame cuts a concrete block with a hand-held dry disc\nsaw resting on a low workbench.\n\nA thick white cloud of dust hangs in the air around him and drifts through the\nshafts of light coming from a single window opening. Fine pale dust covers the\nfloor, the blocks and the surfaces around.\n\nThe worker wears a helmet but no respirator. There is no water feed on the saw and\nno extraction hose anywhere in the room.\n\nThe saw is cutting normally, nothing is broken, the worker is standing upright and\nunhurt.","An open narrow trench cut along the boundary of a construction site, seen from\nabove ground at eye level. The trench is about one metre deep, with loose earth\npiled beside it.\n\nIn the side wall of the trench, clearly visible, runs a thick black electrical\ncable, partly uncovered by the digging, with earth still clinging to it. No\nwarning tape and no marker above it.\n\nA yellow excavator stands close to the trench with its bucket lowered near the\nsame line. Two workers stand at the far end of the trench, upright and at a\ndistance, tidying the edge.\n\nThe cable is intact and undamaged. No sparks, no fire, no one touching the cable.","A ceiling formwork deck on the third floor of a building under construction, seen\nfrom below and to the side. The deck is carried by a forest of steel props.\n\nSeveral props in the centre of the frame are visibly loose and not tight against\nthe beams above, and one stands slightly tilted. The deck above them sags very\nslightly, a shallow dip that is noticeable against the straight line of the beams\nbeside it.\n\nAbove the deck, a concrete pump hose is pouring wet concrete. Workers in helmets\nstand on the deck near the pour, and a few more stand on the floor below.\n\nNothing has collapsed. The formwork is still standing, the concrete is flowing\nnormally, nobody is falling or hurt.","The interior of a finished retail shop, about 400 square metres, photographed from\none corner at eye level.\n\nThe ceiling is a continuous surface of dark wooden slats, and it is clearly low:\nit sits just above the tops of the tall display units, and the whole space feels\ncompressed under it.\n\nOpen shopping floor with clothing racks and shelves, a few customers walking\nbetween them, calm and ordinary. Warm downlights are recessed in the wooden\nceiling.\n\nThere are no sprinklers and no smoke vents on the ceiling. No fire, no smoke, no\nalarm, nothing dramatic: an ordinary shopping afternoon."];
+function copyText(t) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+  const ta = document.createElement("textarea");
+  ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  const ok = document.execCommand("copy");
+  ta.remove();
+  return ok ? Promise.resolve() : Promise.reject(new Error("copy failed"));
+}
+document.querySelectorAll("button.copy").forEach((b) => {
+  b.addEventListener("click", () => {
+    copyText(STYLE + "\n\n" + PROMPTS[Number(b.dataset.i)]).then(() => {
+      b.textContent = "הועתק"; b.classList.add("done");
+      setTimeout(() => { b.textContent = "העתקת הפרומפט"; b.classList.remove("done"); }, 1600);
+    }).catch(() => {
+      b.textContent = "לא הצלחתי, סמנו ידנית";
+      setTimeout(() => { b.textContent = "העתקת הפרומפט"; }, 2600);
+    });
+  });
+});
+</script>
+</body>
+</html>
