@@ -26,7 +26,7 @@ button.mx-c{cursor:pointer}
 .mx-c .mx-m + .mx-m{transform:translate(0,18px)}
 .mx.small .mx-c{border-radius:5px;font-size:11px}
 .mx.small .mx-ax{font-size:11px} .mx.small .mx-ax span{display:none}
-.mx.small .mx-corner{display:none}
+.mx.small .mx-corner{visibility:hidden}  /* לא display:none: התא הזה מחזיק את עמודת הצירים במקום */
 
 /* --- בקרות --- */
 .ctl{display:block;width:100%;text-align:start;background:var(--panel);border:1px solid var(--line);border-inline-start:4px solid var(--line);
